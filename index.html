@@ -1,0 +1,92 @@
+<!--
+  Copyright (c) 2025 Brian Walczak
+  All rights reserved.
+
+  This source code is licensed under the MIT License found in the
+  LICENSE file in the root directory of this source tree.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Map View | Redbox Locator</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <link rel="stylesheet" href="static/css/style.css" /> <!-- Page Styling -->
+    <link rel="stylesheet" href="static/css/theme.css" /> <!-- Themes (Light/Dark) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html, body {
+            overflow: hidden !important;
+        }
+
+        #start .title {
+            font-weight: 800;
+            font-size: 35px;
+        }
+
+        #start .desc {
+            font-size: 16px;
+            margin-top: -15px;
+            padding: 0px 20px;
+        }
+
+        .stateBtn {
+            background-color: #e50813;
+            padding: 8px 20px;
+            margin-top: 10px;
+        }
+
+        .stateBtn:disabled {
+            background-color: #b50711;
+            cursor: not-allowed;
+        }
+
+        .locationBtn {
+            background-color: #1F51FF;
+        }
+
+        .locationBtn:disabled {
+            background-color: #0e3dcb;
+            cursor: not-allowed;
+        }
+    </style>
+
+    <script src="https://unpkg.com/supercluster/dist/supercluster.min.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+</head>
+<body>
+    <div class="header">
+        <div id="color" class="toggle" onclick="settings.theme.swap()"></div>
+        <div id="settings" class="toggle" onclick="updateSettings()" style="display: none;"></div>
+    </div>
+        
+    <div id="start" style="display: none;">
+        <h1 class="title">Redbox Locator</h1>
+        <p class="desc" style="margin-top: -15px;"></p><br>
+        <button onclick="actions.useCurrentLocation()" class="locationBtn">Use Current Location</button>
+        
+        <div class="divider">OR</div>
+        <form>
+            <select id="stateList" name="state">
+                <!-- states will be added in init.js -->
+            </select>
+        </form>
+
+        <button onclick="actions.zoomToState()" class="stateBtn">Choose State</button>
+    </div>
+        
+    <div id="map" style="opacity: 0; visibility: hidden;"></div>
+    
+    <script type="text/javascript" src="static/js/settings.js"></script> <!-- Settings configuration -->
+    <script type="text/javascript" src="static/js/utils.js"></script> <!-- Useful functions -->
+    <script type="text/javascript" src="static/js/main.js"></script> <!-- Map code (this is the main source!) -->
+    <script type="text/javascript" src="static/js/init.js"></script> <!-- Initialization / cleanup -->
+</body>
+</html>

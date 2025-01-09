@@ -1,0 +1,105 @@
+/*!
+ * Copyright (c) 2025 Brian Walczak
+ * All rights reserved.
+ *
+ * This source code is licensed under the MIT License found in the
+ * LICENSE file in the root directory of this source tree.
+*/
+
+.lightMode {
+    background: white;
+    color: black;
+}
+
+.darkMode {
+    background: rgb(17, 17, 17);
+    color: white;
+}
+
+.darkMode select {
+    color: #ffffff;
+    border: 2px solid #555555;
+    background-color: #333333;
+}
+
+.lightMode select {
+    color: #000000;
+    border: 2px solid #cccccc;
+    background-color: #ffffff;
+}
+
+.darkMode .popup .content {
+    background: rgb(17, 17, 17);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0)), rgb(17, 17, 17);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    color: white;
+}
+
+.lightMode .popup .content {
+    background: rgb(255, 255, 255);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0)), rgb(255, 255, 255);
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    color: black;
+}
+
+.lightMode .cluster div, .lightMode .marker {
+    color: black;
+}
+
+.darkMode .cluster div, .darkMode .marker {
+    color: white;
+}
+
+.darkMode .cluster span {
+    color: #dedede;
+}
+
+.lightMode .cluster span {
+    color: rgb(17, 17, 17);
+}
+
+
+
+/* -- Theme Toggle CSS -- */
+
+.header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.header .toggle {
+    cursor: pointer;
+    font-size: 20px;
+    user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 34px;
+    height: 34px;
+    pointer-events: auto;
+}
+
+.header #settings::before {
+    content: "⚙️";
+}
+
+.lightMode .header .toggle {
+    filter: grayscale(100%) brightness(0);
+}
+
+.lightMode .header #color::before {
+    content: "🔆";
+}
+
+.darkMode .header .toggle {
+    filter: grayscale(100%) brightness(100);
+}
+
+.darkMode .header #color::before {
+    content: "🌙";
+}

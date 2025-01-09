@@ -1,0 +1,9 @@
+# these are only used during development
+scrape/
+static/js/main.old.js
+stores.raw.json
+coordinates.json
+
+# removing these cause they don't look great
+static/img/marker.webp
+static/img/redbox.png
