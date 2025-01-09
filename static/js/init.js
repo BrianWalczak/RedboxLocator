@@ -227,6 +227,16 @@ const actions = {
             center: stateCoordinates[state].coordinates,
             zoom: 6
         });
+    },
+
+    createDirections: function(lat, lng) {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+        if (/iPhone|iPad|iPod/i.test(userAgent)) {
+            return `https://maps.apple.com/?daddr=${lat},${lng}`; // for apple devices
+        } else {
+            return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; // for androids and other devices
+        }
     }
 };
 

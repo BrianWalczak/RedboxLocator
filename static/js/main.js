@@ -143,7 +143,7 @@ function updateClusters() {
                 <b>Opening Date: </b>${store.openDate}<br>
                 <b>Latitude: </b>${lat}<br>
                 <b>Longitude: </b>${lng}<br><br>
-                <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank">Get Directions</a>
+                <a href="${actions.createDirections(lat, lng)}" target="_blank">Get Directions</a>
             `);
             marker.setPopup(popup);
 
