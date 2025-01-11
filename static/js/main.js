@@ -51,7 +51,7 @@ function spawnMapInstance() {
             log: false,
             radius: 60,
             extent: 256,
-            maxZoom: 17
+            maxZoom: 15
         });
 
 
