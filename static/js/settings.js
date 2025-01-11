@@ -7,6 +7,7 @@
 */
 
 const settings = {
+    // get the settings from local storage
     get: function(value = null) {
         const getSettings = localStorage.getItem('settings');
         let result = {};
@@ -26,6 +27,7 @@ const settings = {
         }
     },
 
+    // set the settings in local storage
     set: function(key, value) {
         const getSettings = localStorage.getItem('settings');
         let result = {};
@@ -43,6 +45,7 @@ const settings = {
         return result;
     },
 
+    // delete a setting from local storage
     del: function(key = null) {
         if(!key) {
             localStorage.removeItem('settings');
@@ -60,6 +63,7 @@ const settings = {
         return result;
     },
 
+    // update the theme of the app w/ settings
     theme: function(value) {
         let result = settings.get();
 
@@ -84,6 +88,7 @@ const settings = {
     }
 };
 
+// swap the themes to the opposite (used for the theme toggle)
 settings.theme.swap = function() {
     if ($('body').hasClass('lightMode')) {
         return settings.theme('dark');

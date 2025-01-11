@@ -51,7 +51,7 @@ button {
     font-family: 'Inter', sans-serif;
 }
 
-select {
+select, input, textarea {
     width: 200px;
     padding: 10px;
     font-size: 15px;
@@ -198,7 +198,6 @@ select, select option {
     transition: opacity 0.2s ease;
 }
 
-
 .popup.show {
     opacity: 1;
 }
@@ -230,18 +229,12 @@ select, select option {
 .mapboxgl-popup-content {
     padding: 13px 24px 18px 20px !important;
     border-radius: 12px !important;
+    max-width: 300px;
 }
 
 .mapboxgl-popup h3 {
     font-size: 16px;
     font-weight: bold;
-}
-
-.mapboxgl-popup .mapboxgl-popup-close-button {
-    color: black;
-    padding: 5px 10px;
-    font-size: 18px;
-    border-radius: 10px;
 }
 
 .mapboxgl-popup a {
@@ -261,6 +254,17 @@ select, select option {
 
 .mapboxgl-popup a:active {
     border: none !important;
+}
+
+span.view_duplicates {
+    cursor: pointer;
+    font-family: 'Material Symbols Outlined';
+    position: absolute;
+    padding: 12px;
+    color: darkgrey;
+    font-size: 22px;
+    top: 0px;
+    right: 0px;
 }
 
 /* without the background being shown (for popups)

@@ -6,17 +6,6 @@
  * LICENSE file in the root directory of this source tree.
 */
 
-// Used to copy the address to clipboard (not used yet)
-function copyText(element) {
-    var text = element.textContent;
-    navigator.clipboard.writeText(text).then(function() {
-        alert('The address for this location was copied to the clipboard.');
-    }, function(err) {
-        console.error(err);
-        alert("An error occurred while copying the text to the clipboard. Please check the console for more information.");
-    });
-}
-
 // Track the user's geolocation on initial load
 function trackGeolocation() {
     return new Promise((resolve, reject) => { 
@@ -42,7 +31,58 @@ function trackGeolocation() {
     });
 }
 
+// Look for duplicate coordinates in the data
+function searchDuplicates(lon, lat) {
+  let matchingEntries = [];
 
+  window.duplicates.forEach(duplicate => {
+    const [dLon, dLat] = duplicate.geometry.coordinates;
+
+    if(Number(lon) == Number(dLon) && Number(lat) == Number(dLat)) {
+      matchingEntries.push(duplicate);
+    }
+  });
+
+  return matchingEntries;
+}
+
+// Get the store data from the API
+async function getStoreData(storeId) {
+  const req = await fetch("https://findaredbox.kbots.tech/search/?id=" + storeId);
+  const res = await req.json();
+
+  return res[0];
+}
+
+// Update status of a kiosk location
+async function submitFeedback(storeId, status, notes = null) {
+  if(notes == null) {
+    const oldData = await getStoreData(storeId);
+
+    notes = oldData.notes;
+  }
+  
+  const req = await fetch("https://findaredbox.kbots.tech/update", {
+    method: "POST",
+    headers: {
+        "content-type": "application/json"
+    },
+    body: JSON.stringify({
+        id: storeId,
+        notes,
+        status
+    })
+  });
+  const res = await req.json();
+
+  if(res.message === "Store updated successfully.") {
+    console.log("The user feedback for this location was sent successfully.");
+    return true;
+  } else {
+    console.error("The user feedback was not submitted successfully: ", res);
+    return false;
+  }
+}
 
 // -- Transitions (we have to use opacity for the map transitions, or else it will break) -- //
 

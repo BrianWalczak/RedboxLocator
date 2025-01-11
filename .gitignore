@@ -1,8 +1,10 @@
 # these are only used during development
 scrape/
 static/js/main.old.js
+stores.orig.json
 stores.raw.json
 coordinates.json
+plan.txt
 
 # removing these cause they don't look great
 static/img/marker.webp
