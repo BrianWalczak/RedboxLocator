@@ -234,6 +234,29 @@ const actions = {
         }
     },
 
+    propogateChanges: function(storeId, updatedData = null) {
+        if(!updatedData) updatedData = window.cache[storeId].data;
+
+        try {
+            const { marker, popup } = window.cache[storeId].cluster;
+            const markerEl = marker.getElement();
+
+            $(markerEl).css('background-color', markerColors[updatedData.status]); // update the marker color
+                
+            if(popup.getElement() !== null) {
+                const popupEl = popup.getElement();
+                $(popupEl).find('.status').text(updatedData.status);
+                $(popupEl).find('.notes').html(updatedData.notes ? `<b>Notes: </b>${updatedData.notes}<br><br>` : '');
+
+                $(popupEl).find('.status').css('color', statusColors[updatedData.status]); // update the status color in the popup
+            }
+
+            return true;
+        } catch(error) {
+            return false;
+        }
+    },
+
     viewDuplicates: function(lng, lat, btn) {
         const popupDiv = $(btn).parent().find(".main");
         const dupeDiv = $(btn).parent().find(".duplicates");
@@ -272,7 +295,7 @@ const actions = {
                             <b>Longitude: </b>${lng}
                         `);
 
-                        if (index < duplicates.length - 1) {
+                        if ((index + 1) < duplicates.length) {
                             dupeDiv.append('<br><br>'); // add space between each duplicate
                         }
                     });

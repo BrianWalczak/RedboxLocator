@@ -128,7 +128,6 @@ select, select option {
 }
 
 .marker-single {
-    background-color: rgba(227, 28, 35, 0.8);
     width: 20px !important;
     height: 20px !important;
 }
@@ -254,6 +253,10 @@ select, select option {
 
 .mapboxgl-popup a:active {
     border: none !important;
+}
+
+mapbox-search-box input, mapbox-search-listbox div {
+    font-family: 'Inter', sans-serif !important;
 }
 
 span.view_duplicates {

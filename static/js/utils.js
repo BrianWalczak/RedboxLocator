@@ -12,7 +12,7 @@ function trackGeolocation() {
       geolocateControl.off('geolocate'); 
       geolocateControl.off('error');
 
-      if(!window.alreadyLocated) {
+      if(!window.userGeolocated) { // if they haven't already been located
         geolocateControl.once('geolocate', (event) => {
           map.setCenter([event.coords.longitude, event.coords.latitude]);
           map.setZoom(14);
@@ -51,6 +51,8 @@ async function getStoreData(storeId) {
   const req = await fetch("https://findaredbox.kbots.tech/search/?id=" + storeId);
   const res = await req.json();
 
+  window.cache[storeId].data = { status: res[0].status, notes: res[0].notes }; // updated cache to include latest data
+  actions.propogateChanges(storeId); // update the marker on the map, and any active popup (if it exists)
   return res[0];
 }
 
@@ -77,6 +79,10 @@ async function submitFeedback(storeId, status, notes = null) {
 
   if(res.message === "Store updated successfully.") {
     console.log("The user feedback for this location was sent successfully.");
+
+
+    window.cache[storeId].data = { status, notes }; // updated cache to include latest data
+    actions.propogateChanges(storeId); // update the marker on the map, and any active popup (if it exists)
     return true;
   } else {
     console.error("The user feedback was not submitted successfully: ", res);

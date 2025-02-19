@@ -12,6 +12,28 @@ var geolocateControl;
 var index;
 window.alreadyLocated = false;
 window.duplicates = [];
+window.cache = [];
+
+const markerColors = {
+    'Operational': 'rgba(227, 28, 35, 0.8)',
+    'Error (See notes for error code)': 'rgb(255, 193, 7, 0.6)',
+    'Turned Off': 'rgb(255, 193, 7, 0.6)',
+    'Removed': 'rgb(113, 113, 113)',
+    'Never Existed': 'rgb(113, 113, 113)'
+};
+const statusColors = {
+    'Operational': 'green',
+    'Error (See notes for error code)': 'red',
+    'Turned Off': '#FFC107',
+    'Removed': 'red',
+    'Never Existed': 'red'
+};
+
+const ACCESS_TOKEN = 'pk.eyJ1IjoiYnJpYW53YWxjemFrIiwiYSI6ImNtNXE2ZXJzZzA4emIyanExdmI0MGZhYW4ifQ.58j41e6A78-4Md1B0EJ5FQ';
+// Warning: if anybody is planning to use this, you literally can't do anything with this token... it's meant to be public lol
+// You won't be able to use it on any other site, so don't even try it.
+// If you want to use Mapbox, you need to get your own token from their website.
+// Oh... and I also update this token every time I commit, so it's useless to you anyway. :P
 
 // Creates the map and all of its features
 function spawnMapInstance() {
@@ -22,11 +44,7 @@ function spawnMapInstance() {
         }
 
         console.warn('A map request has been called, creating a new map instance with Mapbox GL JS.\nWarning: You WILL be charged for Mapbox API requests!');
-        mapboxgl.accessToken = 'pk.eyJ1IjoiYnJpYW53YWxjemFrIiwiYSI6ImNtNXE2ZXJzZzA4emIyanExdmI0MGZhYW4ifQ.58j41e6A78-4Md1B0EJ5FQ';
-        // Warning: if anybody is planning to use this, you literally can't do anything with this token... it's meant to be public lol
-        // You won't be able to use it on any other site, so don't even try it.
-        // If you want to use Mapbox, you need to get your own token from their website.
-        // Oh... and I also update this token every time I commit, so it's useless to you anyway. :P
+        mapboxgl.accessToken = ACCESS_TOKEN;
         
         if(mapTheme == 'light') {
             mapTheme = 'mapbox://styles/mapbox/light-v11'
@@ -38,7 +56,8 @@ function spawnMapInstance() {
             container: 'map',
             style: mapTheme,
             center: [-98.5795, 39.8283],
-            zoom: 2
+            zoom: 2,
+            failIfMajorPerformanceCaveat: false
         });
 
         geolocateControl = new mapboxgl.GeolocateControl({
@@ -60,6 +79,18 @@ function spawnMapInstance() {
         map.on('load', function() {
             map.resize();
             console.log('The map has been loaded successfully, user can now access.');
+
+            // Add a search box to the map using Mapbox Search
+            const searchBox = new MapboxSearchBox();
+            searchBox.accessToken = ACCESS_TOKEN;
+            searchBox.options = {
+                types: 'address,poi',
+                proximity: [-98.5795, 39.8283]
+            };
+            searchBox.marker = true;
+            searchBox.mapboxgl = mapboxgl;
+            map.addControl(searchBox, 'top-left');
+
             resolve(true);
         });
 
@@ -78,20 +109,20 @@ function spawnMapInstance() {
 function createGeoJSON(stores) {
     const featuresMap = new Map(); // used to prevent duplicate coordinates
 
-    Object.entries(stores).forEach(([key, kiosk]) => {
-        const coordsKey = `${kiosk.coords.lon},${kiosk.coords.lat}`;
+    stores.forEach(kiosk => {
+        const coordsKey = `${kiosk.lon},${kiosk.lat}`;
         
         const newFeature = {
             type: "Feature",
             geometry: {
                 type: "Point",
-                coordinates: [kiosk.coords.lon, kiosk.coords.lat],
+                coordinates: [kiosk.lon, kiosk.lat],
             },
             properties: {
-                id: key,
-                bannerName: kiosk.banner?.banner_name || kiosk.vendor?.vendor_name || 'Unknown',
+                id: kiosk.id,
+                bannerName: kiosk.banner_name || 'Unknown',
                 address: kiosk.address,
-                openDate: kiosk.open_date ? new Date(kiosk.open_date).toLocaleDateString() : 'Unknown',
+                openDate: kiosk.open_date ? new Date(kiosk.open_date).toLocaleDateString() : 'Unknown'
             }
         };
 
@@ -188,38 +219,12 @@ function updateClusters() {
 
             marker.setPopup(popup);
             window.currentMarkers.push(marker);
+            window.cache[store.id].cluster = { marker, popup };
+            actions.propogateChanges(store.id); // update the marker with the cached data (to update the marker colors)
 
             popup.on('open', async () => {
-                const popupEl = popup.getElement();
-                let oldData = await getStoreData(store.id);
-
-                $(popupEl).find('.status').text(oldData.status); // get the status of the location to display
-
-                if(oldData.notes) {
-                    $(popupEl).find('.notes').html(`<b>Notes: </b>${oldData.notes}<br><br>`);
-                }
-
-
-                // Color code the status
-                if(oldData.status == 'Operational') {
-                    $(popupEl).find('.status').css('color', 'green');
-                }
-
-                if(oldData.status == 'Error (See notes for error code)') {
-                    $(popupEl).find('.status').css('color', 'red');
-                }
-
-                if(oldData.status == 'Turned Off') {
-                    $(popupEl).find('.status').css('color', '#FFC107');
-                }
-
-                if(oldData.status == 'Removed') {
-                    $(popupEl).find('.status').css('color', 'red');
-                }
-
-                if(oldData.status == 'Never Existed') {
-                    $(popupEl).find('.status').css('color', 'red');
-                }
+                actions.propogateChanges(store.id); // update the marker with the cached data (as we wait for the API to return, why not)
+                await getStoreData(store.id); // this already triggers an update for markers, so we don't really need the response data as a variable
             });
         }
     });
@@ -228,27 +233,36 @@ function updateClusters() {
 // Downloads the store data and creates the clusters
 async function downloadClusters() {
     try {
-        const response = await fetch("./stores.json");
+        const worker = new Worker('./static/js/worker.js'); // start downloading the store data in a worker thread
+        worker.postMessage({}); // we're just sending a dummy message to trigger the worker
 
-        if (!response.ok) {
-            console.error(response);
-            alert("An error occurred while loading the store data. Please check the console for more information.");
-            return false;
-        }
+        // wait for the worker to return the store data (finished yayy)
+        worker.onmessage = function(event) {
+            const { storesData, error } = event.data;
 
-        const data = await response.json();
-        index.load(createGeoJSON(data.stores));
+            if (error) {
+                console.error(error);
+                alert("An error occurred while loading the store data. Please check the console for more information.");
+                return false;
+            }
 
-        map.on('move', updateClusters);
-        map.on('zoom', updateClusters);
-        map.on('zoomend', updateClusters);
-        updateClusters();
+            storesData.forEach(store => {
+                window.cache[store.id] = { cluster: null, data: null }
+                window.cache[store.id].data = { status: store.status, notes: store.notes }; // cache the store data used for status updates
+            });
 
-        return true;
+            index.load(createGeoJSON(storesData));
+
+            map.on('zoom', updateClusters);
+            map.on('zoomend', updateClusters);
+            updateClusters();
+
+            worker.terminate(); // cslean up the worker after we're done with it
+        };
+
     } catch (err) {
         console.error(err);
         alert("An error occurred while loading the store data. Please check the console for more information.");
-        return false;
     }
 }
 
@@ -262,9 +276,9 @@ async function initMap() {
     await fadeInOpacity($("#map"), 200); // fade in the map
     $(".toggle#settings").show(); // show the settings toggle
 
-    setInterval(() => {
-        map.resize(); // always resize map to adjust for display sizes/changes
-    }, 1);
+    window.addEventListener('resize', () => {
+        map.resize(); // only resize map to adjust for display sizes/changes
+    });
 
     downloadClusters(); // start downloading the clusters
     return true;
