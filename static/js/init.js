@@ -224,7 +224,7 @@ const actions = {
         });
     },
 
-    createDirections: function(lat, lng) {
+    createDirections: function(lng, lat) {
         const userAgent = navigator.userAgent || navigator.vendor || window.opera; // get user agent
 
         if (/iPhone|iPad|iPod/i.test(userAgent)) {
@@ -235,24 +235,22 @@ const actions = {
     },
 
     propogateChanges: function(storeId, updatedData = null) {
-        if(!updatedData) updatedData = window.cache[storeId].data;
+        if(!updatedData) updatedData = window.cache[storeId];
 
         try {
-            const { marker, popup } = window.cache[storeId].cluster;
-            const markerEl = marker.getElement();
-
-            $(markerEl).css('background-color', markerColors[updatedData.status]); // update the marker color
+            const popupEl = $('.mapboxgl-popup');
+            map.setFeatureState({ source: 'storeSource', id: storeId }, { color: settings.color(updatedData.status, 'marker') }); // update the marker color
                 
-            if(popup.getElement() !== null) {
-                const popupEl = popup.getElement();
+            if(popupEl && popupEl.attr('data-id') === storeId) { // if the popup is open, update the status and notes
                 $(popupEl).find('.status').text(updatedData.status);
                 $(popupEl).find('.notes').html(updatedData.notes ? `<b>Notes: </b>${updatedData.notes}<br><br>` : '');
 
-                $(popupEl).find('.status').css('color', statusColors[updatedData.status]); // update the status color in the popup
+                $(popupEl).find('.status').css('color', settings.color(updatedData.status, 'text')); // change the text color to match the status color
             }
 
             return true;
         } catch(error) {
+            console.log(error);
             return false;
         }
     },
@@ -283,16 +281,16 @@ const actions = {
                 } else {
                     // go through each duplicate and display the information
                     duplicates.forEach(async (dupe, index) => {
-                        const [lng, lat] = dupe.geometry.coordinates;
+                        const { lng: dLng, lat: dLat } = dupe.properties;
                         const store = dupe.properties;
-                        let oldData = await getStoreData(store.id);
 
+                        // we're just gonna use the original cached data cause it's not like they're gonna change by anyone else
                         dupeDiv.append(`
                             ${store.address}<br>
-                            <b>Status: </b>${oldData.status}<br>
+                            <b>Status: </b>${window.cache[store.id].status}<br>
                             <b>Opening Date: </b>${store.openDate}<br>
-                            <b>Latitude: </b>${lat}<br>
-                            <b>Longitude: </b>${lng}
+                            <b>Latitude: </b>${dLat}<br>
+                            <b>Longitude: </b>${dLng}
                         `);
 
                         if ((index + 1) < duplicates.length) {
@@ -370,6 +368,7 @@ const actions = {
 
         // ask them what happened if there's problems with the location
         popup.find('.disagree').click(async function() {
+            // get up-to-date info on the notes so they can add to it
             const oldData = await getStoreData(storeId); // used so we can set the default status options to the previous status
 
             popup.html(`
@@ -428,7 +427,6 @@ const actions = {
         popup.remove();
     }
 };
-
 
 settings.theme();
 initializeUser();

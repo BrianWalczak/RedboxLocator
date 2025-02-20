@@ -9,27 +9,12 @@
 // Reserve variables for the map and geolocation control
 var map;
 var geolocateControl;
-var index;
 window.alreadyLocated = false;
 window.duplicates = [];
 window.cache = [];
 
-const markerColors = {
-    'Operational': 'rgba(227, 28, 35, 0.8)',
-    'Error (See notes for error code)': 'rgb(255, 193, 7, 0.6)',
-    'Turned Off': 'rgb(255, 193, 7, 0.6)',
-    'Removed': 'rgb(113, 113, 113)',
-    'Never Existed': 'rgb(113, 113, 113)'
-};
-const statusColors = {
-    'Operational': 'green',
-    'Error (See notes for error code)': 'red',
-    'Turned Off': '#FFC107',
-    'Removed': 'red',
-    'Never Existed': 'red'
-};
-
 const ACCESS_TOKEN = 'pk.eyJ1IjoiYnJpYW53YWxjemFrIiwiYSI6ImNtNXE2ZXJzZzA4emIyanExdmI0MGZhYW4ifQ.58j41e6A78-4Md1B0EJ5FQ';
+const ZOOM_THRESHOLD = 11;
 // Warning: if anybody is planning to use this, you literally can't do anything with this token... it's meant to be public lol
 // You won't be able to use it on any other site, so don't even try it.
 // If you want to use Mapbox, you need to get your own token from their website.
@@ -38,8 +23,8 @@ const ACCESS_TOKEN = 'pk.eyJ1IjoiYnJpYW53YWxjemFrIiwiYSI6ImNtNXE2ZXJzZzA4emIyanE
 // Creates the map and all of its features
 function spawnMapInstance() {
     return new Promise((resolve, reject) => {
-        let mapTheme = settings.theme();
-        if (map && geolocateControl && index) {
+        let mapTheme = settings.theme(); // get theme color
+        if (map && geolocateControl) {
             return resolve(true);
         }
 
@@ -65,14 +50,6 @@ function spawnMapInstance() {
             trackUserLocation: true,
             showUserHeading: true
         });
-
-        index = new Supercluster({
-            log: false,
-            radius: 60,
-            extent: 256,
-            maxZoom: 15
-        });
-
 
         map.addControl(geolocateControl, 'top-left');
 
@@ -105,129 +82,71 @@ function spawnMapInstance() {
     });
 }
 
-// Creates GeoJSON features from store data
-function createGeoJSON(stores) {
-    const featuresMap = new Map(); // used to prevent duplicate coordinates
-
-    stores.forEach(kiosk => {
-        const coordsKey = `${kiosk.lon},${kiosk.lat}`;
-        
-        const newFeature = {
-            type: "Feature",
-            geometry: {
-                type: "Point",
-                coordinates: [kiosk.lon, kiosk.lat],
-            },
-            properties: {
-                id: kiosk.id,
-                bannerName: kiosk.banner_name || 'Unknown',
-                address: kiosk.address,
-                openDate: kiosk.open_date ? new Date(kiosk.open_date).toLocaleDateString() : 'Unknown'
-            }
-        };
-
-        if (featuresMap.has(coordsKey)) {
-            const existing = featuresMap.get(coordsKey); // get the already-existing one
-            
-            // Prefer the address with longer length (obv may not be good enough but it's the best we can do, we want the most detailed!)
-            if (newFeature.properties.address.length > existing.properties.address.length) {
-                // Merge the two items into one (merge values if one includes data the other doesn't)
-                if(existing.properties.openDate !== 'Unknown') {
-                    newFeature.properties.openDate = existing.properties.openDate;
-                    newFeature.properties.isMerged = true;
-                }
-
-                if(existing.properties.bannerName !== 'Unknown') {
-                    newFeature.properties.bannerName = existing.properties.bannerName;
-                    newFeature.properties.isMerged = true;
-                }
-
-                featuresMap.set(coordsKey, newFeature); // update to the new, merged item
-                window.duplicates.push(existing); // add the old one to duplicates
-            } else {
-                window.duplicates.push(newFeature); // add the new one to duplicates
-            }
-        } else {
-            featuresMap.set(coordsKey, newFeature); // add if no duplicates
-        }
-    });
-
-    // Convert the map values into an array
-    return Array.from(featuresMap.values());
-}
-
 // Updates the clusters on the map
+let zoomedInStores = new Set();
+
 function updateClusters() {
-    const bounds = map.getBounds();
-    const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
     const zoom = map.getZoom();
 
-    const clusters = index.getClusters(bbox, Math.floor(zoom));
-    
-    if (window.currentMarkers) {
-        window.currentMarkers.forEach(m => m.remove());
+    if (zoom < ZOOM_THRESHOLD) {
+        // Remove all stores if zoomed out too far
+        zoomedInStores.forEach(storeId => {
+            map.setFeatureState({ source: 'storeSource', id: storeId }, { color: null });
+        });
+        zoomedInStores.clear();
+        return;
     }
-    window.currentMarkers = [];
 
-    clusters.forEach(async feature => {
-        const [lng, lat] = feature.geometry.coordinates;
-        const store = feature.properties;
+    const features = map.queryRenderedFeatures({ layers: ['storeLayer'] });
+    const storeIds = new Set(features.map(feature => feature.id));
 
-        if (store.cluster) {
-            const clusterSize =
-                store.point_count < 100 ? 'small' :
-                store.point_count < 1000 ? 'medium' : 'large';
+    // Add any stores that are in view
+    features.forEach(store => {
+        try {
+            const cache = window.cache[store.id];
             
-            const clusterEl = document.createElement('div');
-            clusterEl.className = `cluster cluster-${clusterSize}`;
-            clusterEl.innerHTML = `<div><span>${store.point_count_abbreviated}</span></div>`;
-            const clusterMarker = new mapboxgl.Marker(clusterEl).setLngLat([lng, lat]).addTo(map);
-            
-            clusterEl.addEventListener('click', () => {
-                map.easeTo({
-                    center: [lng, lat],
-                    zoom: Math.floor(map.getZoom()) + 2,
-                    duration: 500,
-                    easing: function(t) {
-                        return t * (2 - t);
-                    }
-                });
-            });
+            map.setFeatureState({ source: 'storeSource', id: store.id }, { color: settings.color(cache.status, 'marker') });
+            zoomedInStores.add(store.id);
+        } catch (error) {}
+    });
 
-            window.currentMarkers.push(clusterMarker);
-        } else {
-            const markerEl = document.createElement('div');
-            markerEl.className = 'marker marker-single';
-
-            const marker = new mapboxgl.Marker(markerEl).setLngLat([lng, lat]).addTo(map);
-            const popup = new mapboxgl.Popup({ offset: [5, -15], closeButton: false, closeOnMove: true }).setHTML(`
-                <span class="view_duplicates" onclick="actions.viewDuplicates(${lng}, ${lat}, this)">history</span>
-                <div class=main>
-                    <h3 style='margin: 0px; margin-top: 5px; margin-bottom: 10px'>${store.bannerName}${store.isMerged ? '<span onclick=actions.warnMerged() style="color:grey;cursor:help;"> (Modified)</span>' : ''}</h3>
-                    ${store.address}<br>
-                    <b>Status: </b><span class=status>Loading...</span><br>
-                    <b>Opening Date: </b>${store.openDate}<br>
-                    <b>Latitude: </b>${lat}<br>
-                    <b>Longitude: </b>${lng}<br><br>
-                    <span class=notes></span>
-                    <a href="${actions.createDirections(lat, lng)}" onclick="actions.userFeedback('${store.id}')" target="_blank">Get Directions</a>
-                </div>
-                <div class=duplicates style="color: grey; display: none; data-loaded: false; width: 100%;">
-                    <h3 style='margin: 0px; margin-top: 5px; margin-bottom: 10px'>Duplicate Records</h3>
-                </div>
-            `);
-
-            marker.setPopup(popup);
-            window.currentMarkers.push(marker);
-            window.cache[store.id].cluster = { marker, popup };
-            actions.propogateChanges(store.id); // update the marker with the cached data (to update the marker colors)
-
-            popup.on('open', async () => {
-                actions.propogateChanges(store.id); // update the marker with the cached data (as we wait for the API to return, why not)
-                await getStoreData(store.id); // this already triggers an update for markers, so we don't really need the response data as a variable
-            });
+    // Remove any stores that are no longer in view
+    zoomedInStores.forEach(storeId => {
+        if (!storeIds.has(storeId)) {
+            map.setFeatureState({ source: 'storeSource', id: storeId }, { color: null });
+            zoomedInStores.delete(storeId);
         }
     });
+}
+
+// Serves the popup for a store location (creates it)
+async function servePopup(e) {
+    const feature = e.features[0];
+    const store = feature.properties;
+    const { lng, lat } = feature.properties;
+
+    const popup = new mapboxgl.Popup({ offset: [0, -15], closeButton: false, closeOnMove: true })
+        .setLngLat(e.lngLat) // set lng, lat of the popup itself
+        .setHTML(`
+            <span class="view_duplicates" onclick="actions.viewDuplicates(${lng}, ${lat}, this)">history</span>
+            <div class=main>
+                <h3 style='margin: 0px; margin-top: 5px; margin-bottom: 10px'>${store.bannerName}${store.isMerged ? '<span onclick=actions.warnMerged() style="color:grey;cursor:help;"> (Modified)</span>' : ''}</h3>
+                ${store.address}<br>
+                <b>Status: </b><span class=status>Loading...</span><br>
+                <b>Opening Date: </b>${store.openDate}<br>
+                <b>Latitude: </b>${lat}<br>
+                <b>Longitude: </b>${lng}<br><br>
+                <span class=notes></span>
+                <a href="${actions.createDirections(lng, lat)}" onclick="actions.userFeedback('${store.id}')" target="_blank">Get Directions</a>
+            </div>
+            <div class=duplicates style="color: grey; display: none; data-loaded: false; width: 100%;">
+                <h3 style='margin: 0px; margin-top: 5px; margin-bottom: 10px'>Duplicate Records</h3>
+            </div>
+        `)
+        .addTo(map);
+    $(popup._container).attr('data-id', store.id); // set the store id of the popup container
+    actions.propogateChanges(store.id); // preload the status and notes (as they wait for the new updated one)
+    await getStoreData(store.id); // get the store data from the API (this already runs propogateChanges so we don't need to do anything with the response body)
 }
 
 // Downloads the store data and creates the clusters
@@ -238,7 +157,7 @@ async function downloadClusters() {
 
         // wait for the worker to return the store data (finished yayy)
         worker.onmessage = function(event) {
-            const { storesData, error } = event.data;
+            const { stores, cached, duplicates, error } = event.data;
 
             if (error) {
                 console.error(error);
@@ -246,18 +165,64 @@ async function downloadClusters() {
                 return false;
             }
 
-            storesData.forEach(store => {
-                window.cache[store.id] = { cluster: null, data: null }
-                window.cache[store.id].data = { status: store.status, notes: store.notes }; // cache the store data used for status updates
+            window.cache = cached; // cache the store data for status updates
+            window.duplicates = duplicates; // cache the duplicates for viewing
+
+            map.addSource('storeSource', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: stores },
+                promoteId: 'id' // set to the store id
+            });
+            
+            // Add a marker for each store (far distance)
+            map.addLayer({
+                id: 'storeLayer',
+                type: 'circle',
+                source: 'storeSource',
+                paint: {
+                    'circle-radius': [
+                        'interpolate',
+                        ['linear'], ['zoom'],
+                        5,  3,  // At zoom level 5, radius is 3
+                        10, 6,  // At zoom level 10, radius is 6
+                        15, 12, // At zoom level 15, radius is 12
+                        20, 24  // At zoom level 20, radius is 24
+                    ],
+                    'circle-color': ['coalesce', ['feature-state', 'color'], settings.color('Operational', 'marker')] // default color is for operational
+                }
             });
 
-            index.load(createGeoJSON(storesData));
+            map.on('mouseenter', 'storeLayer', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            
+            map.on('mouseleave', 'storeLayer', () => {
+                map.getCanvas().style.cursor = '';
+            });
 
+            map.on('click', 'storeLayer', (e) => {
+                if(e.features.length == 0) return;
+                if(map.getZoom() < ZOOM_THRESHOLD) {
+                    return map.easeTo({
+                        center: e.features[0].geometry.coordinates,
+                        zoom: Math.floor(map.getZoom()) + 2,
+                        duration: 500,
+                        easing: function(t) {
+                            return t * (2 - t);
+                        }
+                    });
+                };
+
+                return servePopup(e); // show popup if zoomed in enough
+            });
+
+            map.on('move', updateClusters);
             map.on('zoom', updateClusters);
             map.on('zoomend', updateClusters);
+            map.on('moveend', updateClusters);
             updateClusters();
 
-            worker.terminate(); // cslean up the worker after we're done with it
+            worker.terminate(); // clean up the worker after we're done with it
         };
 
     } catch (err) {

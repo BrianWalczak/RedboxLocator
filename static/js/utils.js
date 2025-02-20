@@ -32,13 +32,13 @@ function trackGeolocation() {
 }
 
 // Look for duplicate coordinates in the data
-function searchDuplicates(lon, lat) {
+function searchDuplicates(lng, lat) {
   let matchingEntries = [];
 
   window.duplicates.forEach(duplicate => {
-    const [dLon, dLat] = duplicate.geometry.coordinates;
+    const { lng: dLng, lat: dLat } = duplicate.properties;
 
-    if(Number(lon) == Number(dLon) && Number(lat) == Number(dLat)) {
+    if(Number(lng) == Number(dLng) && Number(lat) == Number(dLat)) {
       matchingEntries.push(duplicate);
     }
   });
@@ -51,7 +51,7 @@ async function getStoreData(storeId) {
   const req = await fetch("https://findaredbox.kbots.tech/search/?id=" + storeId);
   const res = await req.json();
 
-  window.cache[storeId].data = { status: res[0].status, notes: res[0].notes }; // updated cache to include latest data
+  window.cache[storeId] = { status: res[0].status, notes: res[0].notes }; // updated cache to include latest data
   actions.propogateChanges(storeId); // update the marker on the map, and any active popup (if it exists)
   return res[0];
 }
@@ -81,7 +81,7 @@ async function submitFeedback(storeId, status, notes = null) {
     console.log("The user feedback for this location was sent successfully.");
 
 
-    window.cache[storeId].data = { status, notes }; // updated cache to include latest data
+    window.cache[storeId] = { status, notes }; // updated cache to include latest data
     actions.propogateChanges(storeId); // update the marker on the map, and any active popup (if it exists)
     return true;
   } else {

@@ -62,37 +62,58 @@ const settings = {
         localStorage.setItem('settings', JSON.stringify(result));
         return result;
     },
-
-    // update the theme of the app w/ settings
     theme: function(value) {
-        let result = settings.get();
-
-        if(value) {
+        let theme = settings.get('theme');
+        if(!theme && !value) {
+            settings.set('theme', 'dark'); // default to dark theme
+            theme = 'dark';
+        } else if(value) {
             settings.set('theme', value);
-            result.theme = value;
+            theme = value;
         }
 
-        if(result.theme === 'light') {
-            $('body').removeClass('darkMode').addClass('lightMode');
+        $('body').removeClass('lightMode darkMode').addClass(theme == 'light' ? 'lightMode' : 'darkMode');
+        return theme;
+    },
+    color: function(status, type) {
+        let theme = settings.theme();
+        let markerColor;
+        let textColor;
 
-            if(map) map.setStyle('mapbox://styles/mapbox/light-v11');
-            return 'light';
-        } else if(result.theme === 'dark') {
-            $('body').removeClass('lightMode').addClass('darkMode');
-
-            if(map) map.setStyle('mapbox://styles/mapbox/dark-v11');
-            return 'dark';
-        } else {
-            return settings.theme('dark'); // default to dark theme
+        switch (status) {
+            case 'Operational':
+                markerColor = 'rgb(227, 28, 35)';
+                textColor = 'green';
+                break;
+            case 'Turned Off':
+                markerColor = 'rgba(255, 193, 7, 0.6)';
+                textColor = '#FFC107';
+                break;
+            case 'Removed':
+                markerColor = settings.theme() == 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)';
+                textColor = 'red';
+                break;
+            case 'Error (See notes for error code)':
+                markerColor = 'rgba(255, 193, 7, 0.6)';
+                textColor = 'red';
+                break;
+            case 'Never Existed':
+                markerColor = settings.theme() == 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)';
+                textColor = 'red';
+                break;
         }
+
+        return type == 'marker' ? markerColor : type == 'text' ? textColor : { marker: markerColor, text: textColor };
     }
 };
 
 // swap the themes to the opposite (used for the theme toggle)
 settings.theme.swap = function() {
     if ($('body').hasClass('lightMode')) {
-        return settings.theme('dark');
+        settings.theme('dark');
+        return location.reload();
     } else if($('body').hasClass('darkMode')) {
-        return settings.theme('light');
+        settings.theme('light');
+        return location.reload();
     }
 };
