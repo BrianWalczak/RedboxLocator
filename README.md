@@ -16,7 +16,7 @@ The website is now live and available at https://redboxlocator.com!<br>It's opti
 > [!WARNING]
 > When accessing the live map on iOS, it's highly recommended that you <b>avoid Safari</b> for viewing. There is currently instability issues on Safari with memory overflow, and there's currently no solution to the problem. Apple has yet to fix this issue, so for now, it's recommend that you use an alternative web browser such as <b>Chrome</b> (it's been tested and works!). Additionally, accessing the map on any device with low memory may cause lag at first. This is to be expected as the clustering is being made. Please be patient for the database to load properly :)
 
-### Redbox Locator v2.2.0 has just been released! 🎉
+### Redbox Locator v2.3.0 has just been released! 🎉
 
 ## Contributions
 If you'd like to contribute to this project, please create a pull request [here](https://github.com/BrianWalczak/RedboxLocator/pulls). You can submit your feedback or any bugs that you find, on our <a href='https://github.com/BrianWalczak/RedboxLocator/issues'>issues page</a>. Contributions are highly appreciated and will help us keep this project up-to-date!
