@@ -13,10 +13,12 @@
     <title>Redbox Locator</title>
     <link rel="stylesheet" href="static/css/style.css" /> <!-- Page Styling -->
     <link rel="stylesheet" href="static/css/theme.css" /> <!-- Themes (Light/Dark) -->
+    <link rel="stylesheet" href="static/css/search.css" /> <!-- Search Results CSS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -82,12 +84,16 @@
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <script id="search-js" defer="" src="https://api.mapbox.com/search-js/v1.0.0-beta.25/web.js"></script>
 </head>
 <body>
     <div class="header">
         <div id="color" class="toggle" onclick="settings.theme.swap()"></div>
         <div id="settings" class="toggle" onclick="updateSettings()" style="display: none;">settings</div>
+    </div>
+    <div class="search-container" style="display: none;">
+        <span class="search-icon material-icons">search</span>
+        <input type="text" class="search-input" placeholder="Search">
+        <span class="close-icon material-icons">close</span>
     </div>
         
     <div id="start" style="display: none;">
@@ -106,10 +112,17 @@
     </div>
         
     <div id="map" style="opacity: 0; visibility: hidden;"></div>
+    <div class="search-results">
+        <div class="draggable-area">
+            <div class="handle"></div>
+        </div>
+        <div class="locations"></div>
+    </div>
     
     <script type="text/javascript" src="static/js/settings.js"></script> <!-- Settings configuration -->
     <script type="text/javascript" src="static/js/utils.js"></script> <!-- Useful functions -->
     <script type="text/javascript" src="static/js/main.js"></script> <!-- Map code (this is the main source!) -->
     <script type="text/javascript" src="static/js/init.js"></script> <!-- Initialization / cleanup -->
+    <script type="text/javascript" src="static/js/search.js"></script> <!-- Custom store search -->
 </body>
 </html>

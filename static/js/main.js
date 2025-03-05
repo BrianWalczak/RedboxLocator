@@ -13,7 +13,7 @@ window.alreadyLocated = false;
 window.duplicates = [];
 window.cache = [];
 
-const ACCESS_TOKEN = 'pk.eyJ1IjoiYnJpYW53YWxjemFrIiwiYSI6ImNtNXE2ZXJzZzA4emIyanExdmI0MGZhYW4ifQ.58j41e6A78-4Md1B0EJ5FQ';
+const ACCESS_TOKEN = 'pk.eyJ1IjoiYnJpYW53YWxjemFrIiwiYSI6ImNtNXE2Y2FseDA4dWcya3BxaXJxaGgyc2kifQ.UO1oqpQo2YJFmbTNJUTjjA';
 const ZOOM_THRESHOLD = 11;
 // Warning: if anybody is planning to use this, you literally can't do anything with this token... it's meant to be public lol
 // You won't be able to use it on any other site, so don't even try it.
@@ -51,22 +51,32 @@ function spawnMapInstance() {
             showUserHeading: true
         });
 
-        map.addControl(geolocateControl, 'top-left');
+        map.addControl(geolocateControl);
+        const btn = document.createElement('button');
+        btn.className = 'geolocate-btn';
+        btn.innerHTML = '';
+        btn.onclick = async () => {
+            geolocateControl.trigger();
+            
+            if (typeof(DeviceMotionEvent) !== "undefined" && typeof(DeviceMotionEvent.requestPermission) === "function") { // if they're on an iOS device
+                try {
+                    await DeviceMotionEvent.requestPermission(); // request permission for orientation tracking
+                } catch (error) {}
+            }
+        };
+        document.body.appendChild(btn);
+
+        geolocateControl.on('trackuserlocationstart', () => {
+            $('.geolocate-btn').addClass('active');
+        });
+          
+        geolocateControl.on('trackuserlocationend', () => {
+            $('.geolocate-btn').removeClass('active');
+        });      
 
         map.on('load', function() {
             map.resize();
             console.log('The map has been loaded successfully, user can now access.');
-
-            // Add a search box to the map using Mapbox Search
-            const searchBox = new MapboxSearchBox();
-            searchBox.accessToken = ACCESS_TOKEN;
-            searchBox.options = {
-                types: 'address,poi',
-                proximity: [-98.5795, 39.8283]
-            };
-            searchBox.marker = true;
-            searchBox.mapboxgl = mapboxgl;
-            map.addControl(searchBox, 'top-left');
 
             resolve(true);
         });

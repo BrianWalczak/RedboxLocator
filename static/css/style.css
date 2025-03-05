@@ -255,10 +255,6 @@ select, select option {
     border: none !important;
 }
 
-mapbox-search-box input, mapbox-search-listbox div {
-    font-family: 'Inter', sans-serif !important;
-}
-
 span.view_duplicates {
     cursor: pointer;
     font-family: 'Material Symbols Outlined';
@@ -268,6 +264,42 @@ span.view_duplicates {
     font-size: 22px;
     top: 0px;
     right: 0px;
+}
+
+.mapboxgl-ctrl-attrib {
+    display: none; /* remove attribution information */
+}
+
+.mapboxgl-ctrl-geolocate {
+    display: none !important; /* remove default geolocate button */
+}
+
+.geolocate-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background-color: #fff;
+    border-radius: 50%;
+    width: 49px;
+    height: 49px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Material Symbols Outlined';
+    font-weight: 500;
+    font-size: 22px;
+}
+
+.geolocate-btn::before {
+    font-variation-settings: 'FILL' 0;
+    content: 'near_me';
+    color: black;
+}
+
+.geolocate-btn.active::before {
+    font-variation-settings: 'FILL' 1;
+    color: #1a73e8;
 }
 
 /* without the background being shown (for popups)

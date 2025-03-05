@@ -25,7 +25,7 @@ function trackGeolocation() {
 
         geolocateControl.trigger();
       } else {
-        $('.mapboxgl-ctrl-geolocate').click();
+        $('.geolocate-btn').click();
         resolve(true);
       }
     });
